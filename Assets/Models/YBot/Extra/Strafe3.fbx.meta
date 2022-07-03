@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 06ecddf80773d7047b67421c49f71b44
+guid: 9de9c1ecaed23584ca62acfda8a9a454
 ModelImporter:
   serializedVersion: 20200
   internalIDToNameTable:
@@ -413,7 +413,7 @@ ModelImporter:
     second: //RootNode
   - first:
       74: 7400000
-    second: SwordWalk
+    second: Strafe3
   - first:
       95: 9500000
     second: //RootNode
@@ -446,13 +446,13 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: SwordWalk
+      name: Strafe3
       takeName: mixamo.com
       internalID: 0
       firstFrame: 0
-      lastFrame: 33
+      lastFrame: 39
       wrapMode: 0
-      orientationOffsetY: 0
+      orientationOffsetY: 45
       level: 0
       cycleOffset: 0
       loop: 0
@@ -463,9 +463,9 @@ ModelImporter:
       loopBlendPositionY: 1
       loopBlendPositionXZ: 0
       keepOriginalOrientation: 1
-      keepOriginalPositionY: 1
-      keepOriginalPositionXZ: 1
-      heightFromFeet: 0
+      keepOriginalPositionY: 0
+      keepOriginalPositionXZ: 0
+      heightFromFeet: 1
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []

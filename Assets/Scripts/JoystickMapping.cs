@@ -17,5 +17,10 @@ public class JoystickMapping : MonoBehaviour
     public string TriggerToJump = "Button3";
     public string TriggerToRoll = "Button1";
     public string TriggerToSlash = "Button2";
+    public string PressToDefense = "Button4";
+    public string TriggerToCrouch = "Button8";
+    public string PressToLockOn = "Axis3";
+    public string TriggerToSwithTargetFrontAndBack = "Axis7";
+    public string TriggerToSwithTargetLeftAndRight = "Axis6";
     public string TriggerToCloseGame = "Button6";
 }

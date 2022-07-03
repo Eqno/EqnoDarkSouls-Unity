@@ -12,8 +12,11 @@ public class InputSystem : MonoBehaviour
     // 缩放
     private bool zooming = false;
     private float joyZoomMuti = 150;
+    
+    // 切换锁定
+    private bool pressedDown = false;
 
-    void Start()
+    void Awake()
     {
         Keyboard = GetComponent<KeyboardMapping>();
         Joystick = GetComponent<JoystickMapping>();
@@ -35,14 +38,15 @@ public class InputSystem : MonoBehaviour
         anchorFore = (Input.GetKey(Keyboard.MoveForward) ? 1 : 0) - (Input.GetKey(Keyboard.MoveBackword) ? 1 : 0);
         anchorRight = (Input.GetKey(Keyboard.MoveRightward) ? 1 : 0) - (Input.GetKey(Keyboard.MoveLeftward) ? 1 : 0);
         
-        // 平滑推动
-        forceFore = Mathf.SmoothDamp(forceFore, anchorFore, ref _forceFore, Duration);
-        forceRight = Mathf.SmoothDamp(forceRight, anchorRight, ref _forceRight, Duration);
-
         // 方转圆
-        float unitFore = forceFore * Mathf.Sqrt(1 - forceRight * forceRight / 2);
-        float unitRight = forceRight * Mathf.Sqrt(1 - forceFore * forceFore / 2);
-        return Mathf.Sqrt(unitFore * unitFore + unitRight * unitRight);
+        float unitFore = anchorFore * Mathf.Sqrt(1 - anchorRight * anchorRight / 2);
+        float unitRight = anchorRight * Mathf.Sqrt(1 - anchorFore * anchorFore / 2);
+
+        // 平滑推动
+        forceFore = Mathf.SmoothDamp(forceFore, unitFore, ref _forceFore, Duration);
+        forceRight = Mathf.SmoothDamp(forceRight, unitRight, ref _forceRight, Duration);
+
+        return Mathf.Sqrt(forceFore * forceFore + forceRight * forceRight);
     }
     public float GetJoyAxisXY(ref float forceFore, ref float forceRight)
     {
@@ -92,6 +96,21 @@ public class InputSystem : MonoBehaviour
         return Input.GetMouseButtonDown(0)
         || Input.GetKeyDown(Keyboard.TriggerToSlash)
         || Input.GetButtonDown(Joystick.TriggerToSlash);
+    }
+    public bool GetDefensePress()
+    { return Input.GetKey(Keyboard.PressToDefense) || Input.GetButton(Joystick.PressToDefense); }
+    public bool GetCrouchDown()
+    { return Input.GetKeyDown(Keyboard.TriggerToCrouch) || Input.GetButtonDown(Joystick.TriggerToCrouch); }
+    public bool GetLockOnDown() { return Input.GetKeyDown(Keyboard.TriggerToLockOn); }
+    public bool GetLockOnPress() { return Input.GetAxis(Joystick.PressToLockOn) >= 1-Config.EPS; }
+    public bool GetSwitchLockOnTargetDown() { return Input.GetKeyDown(Keyboard.TriggerToSwithTarget); }
+    public int GetSwithLockOnTargetBy()
+    {
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) >= 1-Config.EPS) return 1;
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) <= -1+Config.EPS) return 2;
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) >= 1-Config.EPS) return 3;
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) <= -1+Config.EPS) return 4;
+        return 0;
     }
     public int TriggerAxis()
     {
