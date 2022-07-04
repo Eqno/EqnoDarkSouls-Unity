@@ -23,15 +23,14 @@ public class InputSystem : MonoBehaviour
     }
     void Update()
     {
-        if (Input.GetKeyDown(Keyboard.SwitchGameMode) || Input.GetButtonDown(Joystick.SwitchGameMode))
-            JoystickMode = !JoystickMode;
-        if (Input.GetKeyDown(Keyboard.TriggerToCloseGame) || Input.GetButtonDown(Joystick.TriggerToCloseGame))
-            Application.Quit();
+        if (Input.GetKeyDown(Keyboard.SwitchGameMode) || Input.GetButtonDown(Joystick.SwitchGameMode)) JoystickMode = !JoystickMode;
+        if (Input.GetKeyDown(Keyboard.TriggerToCloseGame) || Input.GetButtonDown(Joystick.TriggerToCloseGame)) Application.Quit();
     }
     public float GetKeyAxisXY(
         ref float anchorFore, ref float anchorRight,
         ref float forceFore, ref float forceRight,
-        ref float _forceFore, ref float _forceRight, float Duration)
+        ref float _forceFore, ref float _forceRight, float Duration
+    )
     {
         // 摇杆锚点
         anchorFore = (Input.GetKey(Keyboard.MoveForward) ? 1 : 0) - (Input.GetKey(Keyboard.MoveBackword) ? 1 : 0);
@@ -56,7 +55,8 @@ public class InputSystem : MonoBehaviour
     public void GetKeyAxis45(
         ref float anchorUp, ref float anchorRight,
         ref float forceUp, ref float forceRight,
-        ref float _forceUp, ref float _forceRight, float KeyDuration)
+        ref float _forceUp, ref float _forceRight, float KeyDuration
+    )
     {
         // 摇杆锚点
         anchorUp = (Input.GetKey(Keyboard.CameraUp) ? 1 : 0) - (Input.GetKey(Keyboard.CameraDown) ? 1 : 0);

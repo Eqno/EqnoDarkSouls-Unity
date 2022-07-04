@@ -41,9 +41,7 @@ public class CameraRotationController : MonoBehaviour
     public float CameraRootHeight = 1.25f;
     public float CrouchRootHeight = 0.5f;
     // 跟踪方向参数
-    [Header("Follow Direction")]
-    public bool LockOn = false;
-    public GameObject LockTarget;
+    [Header("Follow Direction")]    public GameObject LockTarget;
     public float LockOnTestWidth = 10;
     public float LockOnTestLength = 10;
     public float LockOnTestDistance = 10;
@@ -121,14 +119,14 @@ public class CameraRotationController : MonoBehaviour
         CameraFollowRoot.transform.localPosition = Vector3.Lerp(CameraFollowRoot.transform.localPosition, new Vector3(0, rootHeight, 0), CameraHeightLerp);
 
         // 锁定
-        bool newLockOn = LockOn;
+        bool lockOn = LockTarget != null;
         if (InputSystem.JoystickMode)
         {
             if (InputSystem.GetLockOnDown()) triggerLock = true;
             if (triggerLock)
             {
                 if (InputSystem.GetLockOnUp()) readyToLock = true;
-                if (readyToLock && InputSystem.GetLockOnDown()) newLockOn = !LockOn;
+                if (readyToLock && InputSystem.GetLockOnDown()) lockOn = !lockOn;
                 lockCount += Time.deltaTime;
                 if (lockCount > DoubleTriggerCritical)
                 {
@@ -137,11 +135,10 @@ public class CameraRotationController : MonoBehaviour
                 }
             }
         }
-        else if (InputSystem.GetLockOnDown()) newLockOn = !LockOn;
-        if (LockOn != newLockOn)
+        else if (InputSystem.GetLockOnDown()) lockOn = !lockOn;
+        if (lockOn != (LockTarget != null))
         {
-            LockOn = newLockOn;
-            if (LockOn) NearestLockOnTarget();
+            if (lockOn) NearestLockOnTarget();
             else
             {
                 LockTarget = null;

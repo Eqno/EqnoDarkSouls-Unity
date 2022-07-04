@@ -1,11 +1,15 @@
 using UnityEngine;
 
-public class CharacterMotionController : MonoBehaviour
+public class EnemyMotionController : MonoBehaviour
 {
-    // 游戏对象
-    [Header("Game Objects")]
-    public GameObject CameraHandler;
-    // 平滑推动过程    
+    [Header("Input Parameters")]
+    public float forceFore;
+    public float forceRight;
+    public float unitMagnitude;
+    public GameObject LockTarget;
+    public Vector3 MoveDirection;
+
+    // 平滑推动过程
     [Header("Smooth Duration")]
     public float Duration = 0.1f;
     public float TurnLerp = 0.05f;
@@ -35,34 +39,27 @@ public class CharacterMotionController : MonoBehaviour
 
     // GameObjects
     private Animator Animator;
-    private InputSystem InputSystem;
+    private EnemyIntelligence AI;
+    private VirtualInput VirtualInput;
     private CharacterController Controller;
-    private CameraRotationController cameraRotationController;
 
     // 摇杆锚点位置
     private float anchorFore, anchorRight;
-    // 摇杆推动力度
-    public float forceFore, forceRight;
     // Smooth过程变量
     private float _forceFore, _forceRight;
 
     // 动作幅度和移动速度
-    private float unitMagnitude;
     private float anchRangeMagnitude, anchorRangeFore, anchorRangeRight, anchSpeed;
     private float motionRangeMagnitude, motionRangeFore, motionRangeRight, motionSpeed;
     private float _motionRangeMagnitude, _motionRangeFore, _motionRangeRight, _motionSpeed;
 
     // 下落
     private float velocity = 0;
-    private Vector3 moveDirection;
+    private Vector3 AnimationMove;
     private float inAirTime = 0, inAirTotal = 0.3f;
 
     // 双击翻滚
-    private float rollCount = 0, jabCount = 0;
     private bool rolling = false, jabbing = false;
-    private int triggerButton = 0, readyButton = 0;
-    private int triggerAxis = 0, triggerJab = 0;
-    private int readyToRoll = 0, readyToJab = 0;
 
     // 攻击
     private bool slashing = false;
@@ -87,25 +84,14 @@ public class CharacterMotionController : MonoBehaviour
 
     void Awake()
     {
-        moveDirection = Vector3.zero;
+        AnimationMove = Vector3.zero;
         Animator = GetComponent<Animator>();
-        InputSystem = GetComponent<InputSystem>();
+        AI = GetComponent<EnemyIntelligence>();
+        VirtualInput = GetComponent<VirtualInput>();
         Controller = GetComponent<CharacterController>();
-        cameraRotationController = CameraHandler.GetComponent<CameraRotationController>();
     }
     void Update()
     {
-        // 监听器
-        if (! InputSystem.JoystickMode)
-        {
-            unitMagnitude = InputSystem.GetKeyAxisXY(
-                ref anchorFore, ref anchorRight,
-                ref forceFore, ref forceRight,
-                ref _forceFore, ref _forceRight, Duration
-            );
-        }
-        else unitMagnitude = InputSystem.GetJoyAxisXY(ref forceFore, ref forceRight);
-
         // 控制器
         CharacterMoveController();
         CharacterAttackController();
@@ -114,11 +100,14 @@ public class CharacterMotionController : MonoBehaviour
 
     private void CharacterMoveController()
     {
+        // AI输入
+        AI.INPUT();
+
         // 动作幅度
-        anchorRangeFore = forceFore * (InputSystem.GetRun() ? 2 : 1);
-        anchorRangeRight = forceRight * (InputSystem.GetRun() ? 2 : 1);
-        anchRangeMagnitude = unitMagnitude * (InputSystem.GetRun() ? 2 : 1);
-        if (cameraRotationController.LockTarget == null)
+        anchorRangeFore = forceFore * (VirtualInput.GetRun() ? 2 : 1);
+        anchorRangeRight = forceRight * (VirtualInput.GetRun() ? 2 : 1);
+        anchRangeMagnitude = unitMagnitude * (VirtualInput.GetRun() ? 2 : 1);
+        if (LockTarget == null)
         {
             anchorRangeFore = anchRangeMagnitude;
             anchorRangeRight = 0;
@@ -134,16 +123,16 @@ public class CharacterMotionController : MonoBehaviour
         if (motionRangeMagnitude > Config.EPS)
         {
             Vector3 anchor = Vector3.zero;
-            if (cameraRotationController.LockTarget != null)
+            if (LockTarget != null)
             {
-                Vector3 dir = cameraRotationController.LockTarget.transform.position - transform.position;
+                Vector3 dir = LockTarget.transform.position - transform.position;
                 anchor = new Vector3(dir.x, 0, dir.z);
             }
             else
             {
                 anchor = new Vector3(
-                    forceRight * CameraHandler.transform.forward.z + forceFore * CameraHandler.transform.forward.x, 0,
-                    forceFore * CameraHandler.transform.forward.z - forceRight * CameraHandler.transform.forward.x
+                    forceRight * MoveDirection.z + forceFore * MoveDirection.x, 0,
+                    forceFore * MoveDirection.z - forceRight * MoveDirection.x
                 );
             }
             transform.forward = Vector3.Slerp(transform.forward, anchor, TurnLerp);
@@ -151,9 +140,9 @@ public class CharacterMotionController : MonoBehaviour
 
         // 移动
         Vector3 direction = Vector3.zero;
-        anchSpeed = unitMagnitude * (InputSystem.GetRun() ? RunSpeed : WalkSpeed);
+        anchSpeed = unitMagnitude * (VirtualInput.GetRun() ? RunSpeed : WalkSpeed);
         motionSpeed = Mathf.SmoothDamp(motionSpeed, anchSpeed, ref _motionSpeed, Duration);
-        if (cameraRotationController.LockTarget != null)
+        if (LockTarget != null)
         {
             direction = new Vector3(
                 forceRight * transform.forward.z + forceFore * transform.forward.x, 0,
@@ -166,7 +155,7 @@ public class CharacterMotionController : MonoBehaviour
         if (Controller.isGrounded)
         {
             velocity = inAirTime = 0;
-            if (InputSystem.GetJumpDown() && !crouching)
+            if (VirtualInput.GetJumpDown() && !crouching)
             {
                 Animator.SetTrigger("Jump");
                 velocity = JumpSpeed;
@@ -177,30 +166,10 @@ public class CharacterMotionController : MonoBehaviour
         Animator.SetBool("OnGround", inAirTime <= inAirTotal);
 
         // 翻滚
-        if (velocity < FallToRollCritical) Animator.SetTrigger("Roll");
-        if ((triggerButton = InputSystem.TriggerAxis()) != 0)
-            triggerAxis = triggerButton;
-        if (triggerAxis != 0)
-        {
-            if ((readyButton = InputSystem.ReleaseAxis()) != 0)
-                readyToRoll = readyButton;
-            if (readyToRoll != 0)
-            {
-                if (readyToRoll == triggerAxis)
-                {
-                    if (readyToRoll == InputSystem.TriggerAxis())
-                        Animator.SetTrigger("Roll");
-                }
-                else rollCount = triggerAxis = readyToRoll = 0;
-            }
-            rollCount += Time.deltaTime;
-            if (rollCount > DoubleTriggerCritical) 
-                rollCount = triggerAxis = readyToRoll = 0;
-        }
-        if (InputSystem.GetRollDown()) Animator.SetTrigger("Roll");
+        if (VirtualInput.GetRollDown()) Animator.SetTrigger("Roll");
         if (rolling)
         {
-            if (cameraRotationController.LockTarget != null && Animator.GetFloat("Magnitude") > Config.EPS)
+            if (LockTarget != null && Animator.GetFloat("Magnitude") > Config.EPS)
             {
                 direction = Vector3.Normalize(new Vector3(
                     forceRight * transform.forward.z + forceFore * transform.forward.x, 0,
@@ -211,19 +180,7 @@ public class CharacterMotionController : MonoBehaviour
         }
 
         // 后跳
-        if (InputSystem.GetJumpDown()) triggerJab = 1;
-        if (triggerJab != 0)
-        {
-            if (InputSystem.GetJumpUp()) readyToJab = 1;
-            if (readyToJab != 0)
-            {
-                if (InputSystem.GetJumpDown() && !crouching)
-                    Animator.SetTrigger("Jab");
-            }
-            jabCount += Time.deltaTime;
-            if (jabCount > DoubleTriggerCritical)
-                jabCount = triggerJab = readyToJab = 0;
-        }
+        if (VirtualInput.GetJabDown() && !crouching) Animator.SetTrigger("Jab");
         if (jabbing) direction = transform.forward * Animator.GetFloat("JabVelocity") * JabSpeed;
 
         // 重力
@@ -231,8 +188,8 @@ public class CharacterMotionController : MonoBehaviour
 
         // 缓冲
         if (Animator.GetFloat("Magnitude") > Config.EPS) Controller.Move(direction * Time.deltaTime);
-        else Controller.Move(moveDirection + direction * Time.deltaTime);
-        moveDirection = Vector3.zero;
+        else Controller.Move(AnimationMove + direction * Time.deltaTime);
+        AnimationMove = Vector3.zero;
 
         // 切换Idle
         if (! CheckState("Ground") || ! CheckState("Idle", "Attack Layer") || ! CheckState("ShieldDown", "Defense Layer") || ! CheckState("Idle", "Crouch Layer") || Animator.GetFloat("Magnitude") > Config.EPS)
@@ -254,7 +211,7 @@ public class CharacterMotionController : MonoBehaviour
         else AdjustLayerWeight(ref idleLayerWeight, "Idle Layer", 0, LayerLerp);
 
         // 蹲下
-        if (InputSystem.GetCrouchDown())
+        if (VirtualInput.GetCrouchDown())
         {
             crouching = !crouching;
             Animator.SetBool("Crouch", crouching);
@@ -282,8 +239,8 @@ public class CharacterMotionController : MonoBehaviour
     private void CharacterAttackController()
     {
         // 攻击
-        bool leftSlash = InputSystem.GetLeftSlashDown();
-        bool rightSlash = InputSystem.GetRightSlashDown();
+        bool leftSlash = VirtualInput.GetLeftSlashDown();
+        bool rightSlash = VirtualInput.GetRightSlashDown();
         if (leftSlash)
         {
             leftSlashTime = 0;
@@ -325,7 +282,7 @@ public class CharacterMotionController : MonoBehaviour
         }
 
         // 防御
-        if (! slashing) Animator.SetBool("Defense", InputSystem.GetDefense());
+        if (! slashing) Animator.SetBool("Defense", VirtualInput.GetDefense());
     }
     private void CharacterImpactController()
     {
@@ -353,7 +310,7 @@ public class CharacterMotionController : MonoBehaviour
         return Animator.GetCurrentAnimatorStateInfo(layerIndex).IsName(stateName);
     }
     // 更新频率不同，必须缓冲
-    void OnAnimatorMove() { if ((slashing || crouchDuration || impacting) && (! rolling)) moveDirection += Animator.deltaPosition; }
+    void OnAnimatorMove() { if ((slashing || crouchDuration || impacting) && (! rolling)) AnimationMove += Animator.deltaPosition; }
     public void OnRollEnter() { rolling = true; }
     public void OnRollExit() { rolling = false; }
     public void OnJabEnter() { jabbing = true; }
