@@ -18,8 +18,9 @@ public class KeyboardMapping : MonoBehaviour
     public string PressToRun = "left shift";
     public string TriggerToJump = "space";
     public string TriggerToRoll = "left ctrl";
-    public string TriggerToSlash = "q";
-    public string PressToDefense = "e";
+    public string PressToDefense = "f";
+    public string RightAttack = "e";
+    public string LeftAttack = "q";
     public string TriggerToCrouch = "c";
     public string TriggerToLockOn = "t";
     public string TriggerToSwithTarget = "tab";

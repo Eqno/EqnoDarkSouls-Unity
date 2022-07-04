@@ -16,11 +16,14 @@ public class JoystickMapping : MonoBehaviour
     public string PressToRun = "Button0";
     public string TriggerToJump = "Button3";
     public string TriggerToRoll = "Button1";
-    public string TriggerToSlash = "Button2";
-    public string PressToDefense = "Button4";
+    public string PressToDefense = "Button2";
+    public string LeftSlash = "Button4";
+    public string RightSlash = "Button5";
+    public string LeftAttack = "Axis3";
+    public string RightAttack = "Axis3";
     public string TriggerToCrouch = "Button8";
-    public string PressToLockOn = "Axis3";
-    public string TriggerToSwithTargetFrontAndBack = "Axis7";
-    public string TriggerToSwithTargetLeftAndRight = "Axis6";
+    public string DoubleTriggerToLockOn = "Button9";
+    public string TriggerToSwithTargetFrontAndBack = "Axis5";
+    public string TriggerToSwithTargetLeftAndRight = "Axis4";
     public string TriggerToCloseGame = "Button6";
 }

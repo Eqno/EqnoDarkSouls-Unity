@@ -12,6 +12,7 @@ public class CharacterMotionController : MonoBehaviour
     public float LayerLerp = 0.02f;
     public float CrouchLaryerLerp = 0.05f;
     public float ImpactLayerLerp = 0.1f;
+    public float DefenseLayerLerp = 0.1f;
     // 走路跑步参数
     [Header("Walk Run And Jump")]
     public float WalkSpeed = 1.4f;
@@ -67,7 +68,8 @@ public class CharacterMotionController : MonoBehaviour
     private bool slashing = false;
     private float attackLayerWeight = 0;
     private float movingAttackWeight = 0;
-    private float slashTime = 0;
+    private float defenseLayerWeight = 0;
+    private float leftSlashTime = 0, rightSlashTime = 0;
     
     // 切换Idle
     private int idleCount = 0;
@@ -113,9 +115,9 @@ public class CharacterMotionController : MonoBehaviour
     private void CharacterMoveController()
     {
         // 动作幅度
-        anchorRangeFore = forceFore * (InputSystem.GetRunPress() ? 2 : 1);
-        anchorRangeRight = forceRight * (InputSystem.GetRunPress() ? 2 : 1);
-        anchRangeMagnitude = unitMagnitude * (InputSystem.GetRunPress() ? 2 : 1);
+        anchorRangeFore = forceFore * (InputSystem.GetRun() ? 2 : 1);
+        anchorRangeRight = forceRight * (InputSystem.GetRun() ? 2 : 1);
+        anchRangeMagnitude = unitMagnitude * (InputSystem.GetRun() ? 2 : 1);
         if (! cameraRotationController.LockOn)
         {
             anchorRangeFore = anchRangeMagnitude;
@@ -149,7 +151,7 @@ public class CharacterMotionController : MonoBehaviour
 
         // 移动
         Vector3 direction = Vector3.zero;
-        anchSpeed = unitMagnitude * (InputSystem.GetRunPress() ? RunSpeed : WalkSpeed);
+        anchSpeed = unitMagnitude * (InputSystem.GetRun() ? RunSpeed : WalkSpeed);
         motionSpeed = Mathf.SmoothDamp(motionSpeed, anchSpeed, ref _motionSpeed, Duration);
         if (cameraRotationController.LockOn)
         {
@@ -186,7 +188,7 @@ public class CharacterMotionController : MonoBehaviour
             {
                 if (readyToRoll == triggerAxis)
                 {
-                    if (readyToRoll == InputSystem.TriggerAxis() && !slashing)
+                    if (readyToRoll == InputSystem.TriggerAxis())
                         Animator.SetTrigger("Roll");
                 }
                 else rollCount = triggerAxis = readyToRoll = 0;
@@ -195,16 +197,15 @@ public class CharacterMotionController : MonoBehaviour
             if (rollCount > DoubleTriggerCritical) 
                 rollCount = triggerAxis = readyToRoll = 0;
         }
-        if (InputSystem.GetRollDown() && !slashing) Animator.SetTrigger("Roll");
+        if (InputSystem.GetRollDown()) Animator.SetTrigger("Roll");
         if (rolling)
         {
             if (cameraRotationController.LockOn && Animator.GetFloat("Magnitude") > Config.EPS)
             {
-                direction = new Vector3(
+                direction = Vector3.Normalize(new Vector3(
                     forceRight * transform.forward.z + forceFore * transform.forward.x, 0,
                     forceFore * transform.forward.z - forceRight * transform.forward.x
-                );
-                direction = direction / direction.magnitude * RollSpeed;
+                )) * RollSpeed;
             }
             else direction = transform.forward * RollSpeed;
         }
@@ -281,38 +282,53 @@ public class CharacterMotionController : MonoBehaviour
     private void CharacterAttackController()
     {
         // 攻击
-        if (InputSystem.GetSlashDown())
+        bool leftSlash = InputSystem.GetLeftSlashDown();
+        bool rightSlash = InputSystem.GetRightSlashDown();
+        if (leftSlash)
         {
-            slashTime = 0;
-            Animator.SetBool("Slash", true);
+            leftSlashTime = 0;
+            Animator.SetBool("LeftSlash", true);
+            if (Animator.GetBool("RightSlash"))
+            {
+                rightSlashTime = ListenNextSlashTime + 1;
+                Animator.SetBool("RightSlash", false);
+            }
         }
-        if (slashTime > ListenNextSlashTime)
+        if (rightSlash)
         {
-            Animator.SetBool("Slash", false);
+            rightSlashTime = 0;
+            Animator.SetBool("RightSlash", true);
+            if (Animator.GetBool("LeftSlash"))
+            {
+                leftSlashTime = ListenNextSlashTime + 1;
+                Animator.SetBool("LeftSlash", false);
+            }
         }
-        else slashTime += Time.deltaTime;
+        if (leftSlashTime > ListenNextSlashTime) Animator.SetBool("LeftSlash", false); else leftSlashTime += Time.deltaTime;
+        if (rightSlashTime > ListenNextSlashTime) Animator.SetBool("RightSlash", false); else rightSlashTime += Time.deltaTime;
         if (slashing)
         {
-            if (Animator.GetFloat("Magnitude") > Config.EPS)
+            if (Animator.GetFloat("Magnitude") > Config.EPS || rolling)
                 AdjustLayerWeight(ref attackLayerWeight, "Attack Layer", 0, LayerLerp);
             else AdjustLayerWeight(ref attackLayerWeight, "Attack Layer", 1, LayerLerp);
             AdjustLayerWeight(ref movingAttackWeight, "Moving Attack", 1, LayerLerp);
+
+            AdjustLayerWeight(ref defenseLayerWeight, "Defense Layer", 0, DefenseLayerLerp);
         }
         else
         {
-            slashTime = ListenNextSlashTime + 1;
+            leftSlashTime = ListenNextSlashTime + 1;
             AdjustLayerWeight(ref attackLayerWeight, "Attack Layer", 0, LayerLerp);
             AdjustLayerWeight(ref movingAttackWeight, "Moving Attack", 0, LayerLerp);
+
+            AdjustLayerWeight(ref defenseLayerWeight, "Defense Layer", 1, DefenseLayerLerp);
         }
 
         // 防御
-        Animator.SetBool("Defense", InputSystem.GetDefensePress());
+        if (! slashing) Animator.SetBool("Defense", InputSystem.GetDefense());
     }
     private void CharacterImpactController()
     {
-        // if (Input.GetKeyDown("1")) Animator.SetTrigger("ImpactDefense");
-        // if (Input.GetKeyDown("2")) Animator.SetTrigger("ImpactFront");
-        // if (Input.GetKeyDown("3")) Animator.SetTrigger("ImpactBack");
         if (impacting)
         {
             if (Animator.GetFloat("Magnitude") > Config.EPS)
@@ -337,7 +353,7 @@ public class CharacterMotionController : MonoBehaviour
         return Animator.GetCurrentAnimatorStateInfo(layerIndex).IsName(stateName);
     }
     // 更新频率不同，必须缓冲
-    void OnAnimatorMove() { if (slashing || crouchDuration || impacting) moveDirection += Animator.deltaPosition; }
+    void OnAnimatorMove() { if ((slashing || crouchDuration || impacting) && (! rolling)) moveDirection += Animator.deltaPosition; }
     public void OnRollEnter() { rolling = true; }
     public void OnRollExit() { rolling = false; }
     public void OnJabEnter() { jabbing = true; }

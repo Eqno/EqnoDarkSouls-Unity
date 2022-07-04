@@ -12,9 +12,9 @@ public class InputSystem : MonoBehaviour
     // 缩放
     private bool zooming = false;
     private float joyZoomMuti = 150;
-    
-    // 切换锁定
-    private bool pressedDown = false;
+
+    // Get ... Down
+    private bool leftSlash = false, leftAttack = false, rightSlash = false, rightAttack = false;
 
     void Awake()
     {
@@ -25,7 +25,6 @@ public class InputSystem : MonoBehaviour
     {
         if (Input.GetKeyDown(Keyboard.SwitchGameMode) || Input.GetButtonDown(Joystick.SwitchGameMode))
             JoystickMode = !JoystickMode;
-        // print(Input.GetButton(Joystick.TriggerToCloseGame));
         if (Input.GetKeyDown(Keyboard.TriggerToCloseGame) || Input.GetButtonDown(Joystick.TriggerToCloseGame))
             Application.Quit();
     }
@@ -83,7 +82,7 @@ public class InputSystem : MonoBehaviour
         else zooming = false;
         return res;
     }
-    public bool GetRunPress()
+    public bool GetRun()
     { return Input.GetKey(Keyboard.PressToRun) || Input.GetButton(Joystick.PressToRun); }
     public bool GetJumpDown()
     { return Input.GetKeyDown(Keyboard.TriggerToJump) || Input.GetButtonDown(Joystick.TriggerToJump); }
@@ -91,25 +90,35 @@ public class InputSystem : MonoBehaviour
     { return Input.GetKeyUp(Keyboard.TriggerToJump) || Input.GetButtonUp(Joystick.TriggerToJump); }
     public bool GetRollDown()
     { return Input.GetKeyDown(Keyboard.TriggerToRoll) || Input.GetButtonDown(Joystick.TriggerToRoll); }
-    public bool GetSlashDown() 
-    {
-        return Input.GetMouseButtonDown(0)
-        || Input.GetKeyDown(Keyboard.TriggerToSlash)
-        || Input.GetButtonDown(Joystick.TriggerToSlash);
-    }
-    public bool GetDefensePress()
+    public bool GetDefense()
     { return Input.GetKey(Keyboard.PressToDefense) || Input.GetButton(Joystick.PressToDefense); }
+    public bool GetLeftSlash()
+    { return Input.GetMouseButton(0) || Input.GetButton(Joystick.LeftSlash); }
+    public bool GetLeftAttack()
+    { return Input.GetKey(Keyboard.LeftAttack) || Input.GetAxisRaw(Joystick.LeftAttack) < -0.5f; }
+    public bool GetRightSlash()
+    { return Input.GetMouseButton(1) || Input.GetButton(Joystick.RightSlash); }
+    public bool GetRightAttack()
+    { return Input.GetKey(Keyboard.RightAttack) || Input.GetAxisRaw(Joystick.RightAttack) > 0.5f; }
+    public bool GetLeftSlashDown()
+    { if (! leftSlash && GetLeftSlash()) return leftSlash = true; else if (leftSlash && ! GetLeftSlash()) return leftSlash = false; return false; }
+    public bool GetLeftAttackDown()
+    { if (! leftAttack && GetLeftAttack()) return leftAttack = true; else if (leftAttack && ! GetLeftAttack()) return leftAttack = false; return false; }
+    public bool GetRightSlashDown()
+    { if (! rightSlash && GetRightSlash()) return rightSlash = true; else if (rightSlash && ! GetRightSlash()) return rightSlash = false; return false; }
+    public bool GetRightAttackDown()
+    { if (! rightAttack && GetRightAttack()) return rightAttack = true; else if (rightAttack && ! GetRightAttack()) return rightAttack = false; return false; }
     public bool GetCrouchDown()
     { return Input.GetKeyDown(Keyboard.TriggerToCrouch) || Input.GetButtonDown(Joystick.TriggerToCrouch); }
-    public bool GetLockOnDown() { return Input.GetKeyDown(Keyboard.TriggerToLockOn); }
-    public bool GetLockOnPress() { return Input.GetAxis(Joystick.PressToLockOn) >= 1-Config.EPS; }
+    public bool GetLockOnDown() { return Input.GetKeyDown(Keyboard.TriggerToLockOn) || Input.GetButtonDown(Joystick.DoubleTriggerToLockOn); }
+    public bool GetLockOnUp() { return Input.GetButtonUp(Joystick.DoubleTriggerToLockOn); }
     public bool GetSwitchLockOnTargetDown() { return Input.GetKeyDown(Keyboard.TriggerToSwithTarget); }
-    public int GetSwithLockOnTargetBy()
+    public int GetSwithLockOnTargetTo()
     {
-        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) >= 1-Config.EPS) return 1;
-        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) <= -1+Config.EPS) return 2;
-        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) >= 1-Config.EPS) return 3;
-        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) <= -1+Config.EPS) return 4;
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) <= -0.5f) return 1; // front
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetFrontAndBack) >= 0.5f) return 2; // back
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) >= 0.5f) return 3; // right
+        if (Input.GetAxis(Joystick.TriggerToSwithTargetLeftAndRight) <= -0.5f) return 4; // left
         return 0;
     }
     public int TriggerAxis()
